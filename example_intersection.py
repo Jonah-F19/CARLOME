@@ -73,7 +73,7 @@ if not human_controller:
     car1 = w.sim_tick(c1sim)
     car2 = w.sim_tick(c2sim)
     Ped1 = w.sim_tick(p1sim)
-    
+
     while c1_sim_ticks != 400 and c2_sim_ticks != 400 and p1_sim_ticks != 400:
 
         # All movable objects will keep their control the same as long as we don't change it.
@@ -93,8 +93,7 @@ if not human_controller:
             c2sim.set_control(0, 0.1)
 
         is_future_collision = False
-        crash = []
-        print(crash)
+        crash = [False]
         sim_geometry_trace = w.sim_tick(c1sim)
         for obj1, obj2 in zip(sim_geometry_trace[c1sim], sim_geometry_trace[c2sim]):
             if obj1.intersectsWith(obj2):
@@ -117,10 +116,7 @@ if not human_controller:
             old_control = None
             c1_sim_ticks += 1
         
-        for c1_sim_ticks in range(400):
-            crash.append(is_future_collision)
-
-        print(crash)
+        crash.append(is_future_collision)
         c2_sim_ticks += 1
         p1_sim_ticks += 1
         w.tick()
