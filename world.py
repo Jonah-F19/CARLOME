@@ -16,17 +16,21 @@ class World:
             self.dynamic_agents.append(entity)
         else:
             self.static_agents.append(entity)
-        
+    def remove (self, entity: Entity):
+        if entity.movable:
+                self.dynamic_agents.remove(entity)
+        else:
+            self.static_agents.remove(entity)
     def tick(self): #Create a worls sim tick, and for all agents have a sim tick, and have return variables of what simtick would do and than input those variables in the normal movements
         for agent in self.dynamic_agents:
             agent.tick(self.dt)
         self.t += self.dt
     
-    def sim_tick(self, target_agent): #Create a worls sim tick, and for all agents have a sim tick, and have return variables of what simtick would do and than input those variables in the normal movements
+    def sim_tick(self, agent): #Create a worls sim tick, and for all agents have a sim tick, and have return variables of what simtick would do and than input those variables in the normal movements
+        sim_traj = {}
         for agent in self.dynamic_agents:
-            if agent == target_agent:
-                return agent.sim_tick(self.dt, self) #to do: process the return of agent.sim tick, which agent do I care about in the sim tick
-        return None, None
+            sim_traj[agent] = agent.sim_tick(self.dt)
+        return sim_traj
     
     def render(self):
         self.visualizer.create_window(bg_color = 'gray')

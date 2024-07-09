@@ -42,7 +42,7 @@ class Entity:
             return (self.inner_radius + self.outer_radius) / 2.
         raise NotImplementedError
     
-    def sim_tick(self, st: float, w): #define simulate ticks, where it 
+    def sim_tick(self, st: float, w=None): #define simulate ticks, where it 
         if self.movable:
             speed = self.speed
             heading = self.heading

@@ -6,7 +6,8 @@ import time
 
 human_controller = False
 simcrash = False
-dt = 0.1 # time steps in terms of seconds. In other words, 1/dt is the FPS.
+dt = 0.1 # time steps in terms of seconds. In other words, 1/dt is the FPS.]
+st = 0.1
 w = World(dt, width = 120, height = 120, ppm = 6) # The world is 120 meters by 120 meters. ppm is the pixels per meter.
 
 # Let's add some sidewalks and RectangleBuildings.
@@ -34,27 +35,31 @@ w.add(Painting(Point(21, 81), Point(0.5, 2), 'white'))
 w.add(Painting(Point(22, 81), Point(0.5, 2), 'white'))
 
 # A Car object is a dynamic object -- it can move. We construct it using its center location and heading angle.
-c1 = Car(Point(20,20), np.pi/2)
-w.add(c1)
+c1sim = Car(Point(20,20), np.pi/2)
+w.add(c1sim)
 
-c2 = Car(Point(118,90), np.pi, 'blue')
-c2.velocity = Point(3.0,0) # We can also specify an initial velocity just like this.
-w.add(c2)
+c2sim = Car(Point(118,90), np.pi, 'blue')
+c2sim.velocity = Point(3.0,0) # We can also specify an initial velocity just like this.
+w.add(c2sim)
 
 # Pedestrian is almost the same as Car. It is a "circle" object rather than a rectangle.
-p1 = Pedestrian(Point(28,81), np.pi)
-p1.max_speed = 10.0 # We can specify min_speed and max_speed of a Pedestrian (and of a Car). This is 10 m/s, almost Usain Bolt.
-w.add(p1)
+p1sim = Pedestrian(Point(28,81), np.pi)
+p1sim.max_speed = 10.0 # We can specify min_speed and max_speed of a Pedestrian (and of a Car). This is 10 m/s, almost Usain Bolt.
+w.add(p1sim)
 
-w.render()
 
 #sim = sim_tick(c1, dt, 10, w)
 if not human_controller:
     # Let's implement some simple scenario with all agents
-    p1.set_control(0, 0.22) # The pedestrian will have 0 steering and 0.22 throttle. So it will not change its direction.
-    c1.set_control(0, 0.35)
-    c2.set_control(0, 0.05)
+    
+    early_crash = False
 
+    
+    w.render()
+
+    p1sim.set_control(0, 0.22) # The pedestrian will have 0 steering and 0.22 throttle. So it will not change its direction.
+    c1sim.set_control(0, 0.35)
+    c2sim.set_control(0, 0.05)
 
     c1_sim_ticks = 0
     c2_sim_ticks = 0
@@ -65,67 +70,91 @@ if not human_controller:
     p1_ticks = 0
 
     old_control = None
-    car1 = w.sim_tick(c1)
-    car2 = w.sim_tick(c2)
-    Ped1 = w.sim_tick(p1)
-
-
+    car1 = w.sim_tick(c1sim)
+    car2 = w.sim_tick(c2sim)
+    Ped1 = w.sim_tick(p1sim)
+    
     while c1_sim_ticks != 400 and c2_sim_ticks != 400 and p1_sim_ticks != 400:
 
         # All movable objects will keep their control the same as long as we don't change it.
         if c1_sim_ticks == 100: # Let's say the first Car will release throttle (and start slowing down due to friction)
-            c1.set_control(0, 0)
+            c1sim.set_control(0, 0)
         elif c1_sim_ticks == 200: # The first Car starts pushing the brake a little bit. The second Car starts turning right with some throttle.
-            c1.set_control(0, -0.02)
+            c1sim.set_control(0, -0.02)
         elif c1_sim_ticks == 325:
-            c1.set_control(0, 0.8)
+            c1sim.set_control(0, 0.8)
 
         if old_control != None:
-            c1.set_control(old_control[0], old_control[1])
+            c1sim.set_control(old_control[0], old_control[1])
 
         if c2_sim_ticks == 325:
-            c2.set_control(-0.45, 0.3)
+            c2sim.set_control(-0.45, 0.3)
         elif c2_sim_ticks == 367: # The second Car stops turning.
-            c2.set_control(0, 0.1)
+            c2sim.set_control(0, 0.1)
 
-        sim_geometry_trace = w.sim_tick(c1)
-       
         is_future_collision = False
         crash = []
-        for obj1, obj2 in zip(car1, car2):
-            print(obj1, obj2)
+        print(crash)
+        sim_geometry_trace = w.sim_tick(c1sim)
+        for obj1, obj2 in zip(sim_geometry_trace[c1sim], sim_geometry_trace[c2sim]):
             if obj1.intersectsWith(obj2):
                 is_future_collision = True
 
-        for obj1, obj3 in zip(car1, Ped1):
+        for obj1, obj3 in zip(sim_geometry_trace[c1sim], sim_geometry_trace[p1sim]):
             if obj1.intersectsWith(obj3):
                 is_future_collision = True
-        crash.append(is_future_collision)
         # if car1.collidesWithSim(car2, sim_geometry_trace[car1], sim_geometry_trace[car2]) or car1[c1_sim_ticks].collidesWith(Ped1[c1_sim_ticks]):
         #     crash = []
         #     crash[c1_sim_ticks] = True
         #     is_future_collision = True
 
-        # if c1_sim_ticks <= 20 and crash[c1_sim_ticks] == True:
-        #     early_crash = True
+        if c1_sim_ticks <= 20 and is_future_collision:
+            early_crash = True
         if is_future_collision:
+            print("Oh crap your gonna crash")
             # print(f'stopping! crash at {tick} ticks in the future')
-            old_control = (c1.inputSteering, c1.inputAcceleration)
-            c1.set_control(0, -1) # stop the car
         else:
             old_control = None
             c1_sim_ticks += 1
         
+        for c1_sim_ticks in range(400):
+            crash.append(is_future_collision)
+
+        print(crash)
         c2_sim_ticks += 1
         p1_sim_ticks += 1
+        w.tick()
+        time.sleep(dt/100)
+        w.render()
 
-        w.sim_tick(c1)
-        time.sleep(dt/4)
+        # if w.collision_exists(): # We can check if there is any collision at all.
+        #     print('Collision exists somewhere...')
+    
+    w.render()
 
-        if w.collision_exists(): # We can check if there is any collision at all.
-            print('Collision exists somewhere...')
-        print(crash)
+    w.remove(c1sim)
+    w.remove(c2sim)
+    w.remove(p1sim)
 
+    c1 = Car(Point(20,20), np.pi/2)
+    w.add(c1)
+
+    c2 = Car(Point(118,90), np.pi, 'blue')
+    c2.velocity = Point(3.0,0) # We can also specify an initial velocity just like this.
+    w.add(c2)
+
+    # Pedestrian is almost the same as Car. It is a "circle" object rather than a rectangle.
+    p1 = Pedestrian(Point(28,81), np.pi)
+    p1.max_speed = 10.0 # We can specify min_speed and max_speed of a Pedestrian (and of a Car). This is 10 m/s, almost Usain Bolt.
+    w.add(p1)
+
+
+
+
+
+    p1.set_control(0, 0.22) # The pedestrian will have 0 steering and 0.22 throttle. So it will not change its direction.
+    c1.set_control(0, 0.35)
+    c2.set_control(0, 0.05)
     while c1_ticks != 400 and c2_ticks != 400 and p1_ticks != 400:
 
         # All movable objects will keep their control the same as long as we don't change it.
@@ -135,7 +164,8 @@ if not human_controller:
         if early_crash == True and c1_ticks <= 20:
              c1.set_control(0,-1.0)
         elif c1_ticks >= 20 and crash[cur_ticks] == True:
-                c1.set_control(0,-1.0)
+                print("slowing down")
+                c1.set_control(0,-5.0)
         else:
             if c1_ticks == 100: # Let's say the first Car will release throttle (and start slowing down due to friction)
                 c1.set_control(0, 0)
@@ -160,7 +190,7 @@ if not human_controller:
 
         w.tick()
         w.render()
-        time.sleep(dt/4)
+        time.sleep(dt/10)
 
         if w.collision_exists(): # We can check if there is any collision at all.
             print('Collision exists somewhere...')
