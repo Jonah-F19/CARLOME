@@ -53,6 +53,7 @@ if not human_controller:
     # Let's implement some simple scenario with all agents
     
     early_crash = False
+    crash = []
 
     
     w.render()
@@ -93,7 +94,6 @@ if not human_controller:
             c2sim.set_control(0, 0.1)
 
         is_future_collision = False
-        crash = []
         sim_geometry_trace = w.sim_tick(c1sim)
         for obj1, obj2 in zip(sim_geometry_trace[c1sim], sim_geometry_trace[c2sim]):
             if obj1.intersectsWith(obj2):
@@ -151,21 +151,23 @@ if not human_controller:
     p1.set_control(0, 0.22) # The pedestrian will have 0 steering and 0.22 throttle. So it will not change its direction.
     c1.set_control(0, 0.35)
     c2.set_control(0, 0.05)
+    checker = 0
     while c1_ticks != 400 and c2_ticks != 400 and p1_ticks != 400:
 
         # All movable objects will keep their control the same as long as we don't change it.
 
         #say something 20 ticks before collision happens slow down, or put it in the array itself, do like a -20
-        cur_ticks = c1_ticks + 20
+        cur_ticks = c1_ticks + 40
         for cur_ticks in range(400):
             b4_ticks = cur_ticks
         else:
             b4_ticks = c1_ticks
         if early_crash == True and c1_ticks <= 20:
              c1.set_control(0,-1.0)
-        elif c1_ticks >= 20 and crash[b4_ticks] == True:
+        elif c1_ticks >= 20 and crash[b4_ticks] == True and checker < 10:
                 print("slowing down")
                 c1.set_control(0,-5.0)
+                checker += 1
         else:
             if c1_ticks == 100: # Let's say the first Car will release throttle (and start slowing down due to friction)
                 c1.set_control(0, 0)
@@ -184,6 +186,7 @@ if not human_controller:
 
             tick = w.sim_tick(c1)
             c1_ticks += 1
+            checker = 0
         
         c2_ticks += 1
         p1_ticks += 1
