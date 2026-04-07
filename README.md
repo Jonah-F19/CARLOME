@@ -1,3 +1,6 @@
+# CARLO Revision Project
+Hi, my name is Jonah Figdor, and I am a student at Emory University. For this project, I have used the CARLO program to create my own attempt at a simple Autonomous Vehicle code. Below is the original CARLO description
+
 # CARLO
 2D Driving Simulator
 
