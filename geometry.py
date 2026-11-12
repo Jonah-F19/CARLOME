@@ -356,3 +356,11 @@ class Ring:
             return 0
             
         raise NotImplementedError # TODO: implement the other cases
+
+def overlaps(a: Union['Rectangle', 'Circle', 'Ring'], b: Union['Rectangle', 'Circle', 'Ring']) -> bool:
+    """True if two shapes touch or overlap. Unlike intersectsWith alone, this
+    also catches one shape sitting completely inside the other."""
+    if a.intersectsWith(b):
+        return True
+    center = lambda s: (s.c1 + s.c3) / 2. if isinstance(s, Rectangle) else s.m
+    return center(a).isInside(b) or center(b).isInside(a)

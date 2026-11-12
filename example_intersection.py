@@ -151,17 +151,14 @@ if not human_controller:
     p1.set_control(0, 0.22) # The pedestrian will have 0 steering and 0.22 throttle. So it will not change its direction.
     c1.set_control(0, 0.35)
     c2.set_control(0, 0.05)
+    c1_plan = (0, 0.35)
     checker = 0
     while c1_ticks != 400 and c2_ticks != 400 and p1_ticks != 400:
 
         # All movable objects will keep their control the same as long as we don't change it.
 
         #say something 20 ticks before collision happens slow down, or put it in the array itself, do like a -20
-        cur_ticks = c1_ticks + 40
-        for cur_ticks in range(400):
-            b4_ticks = cur_ticks
-        else:
-            b4_ticks = c1_ticks
+        b4_ticks = min(c1_ticks + 40, len(crash) - 1)
         if early_crash == True and c1_ticks <= 20:
              c1.set_control(0,-1.0)
         elif c1_ticks >= 20 and crash[b4_ticks] == True and checker < 10:
@@ -170,11 +167,12 @@ if not human_controller:
                 checker += 1
         else:
             if c1_ticks == 100: # Let's say the first Car will release throttle (and start slowing down due to friction)
-                c1.set_control(0, 0)
+                c1_plan = (0, 0)
             elif c1_ticks == 200: # The first Car starts pushing the brake a little bit. The second Car starts turning right with some throttle.
-                c1.set_control(0, -0.02)
+                c1_plan = (0, -0.02)
             elif c1_ticks == 325:
-                c1.set_control(0, 0.8)
+                c1_plan = (0, 0.8)
+            c1.set_control(*c1_plan) # Re-apply every tick so the car resumes its plan after braking.
 
             if old_control != None:
                 c1.set_control(old_control[0], old_control[1])

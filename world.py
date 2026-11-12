@@ -1,71 +1,79 @@
-from agents import Car, Pedestrian, RectangleBuilding
 from entities import Entity
-from typing import Union
-from visualizer import Visualizer
+
 
 class World:
-    def __init__(self, dt: float, width: float, height: float, ppm: float = 8):
+    def __init__(self, dt: float, width: float, height: float, ppm: float = 8, headless: bool = False):
         self.dynamic_agents = []
         self.static_agents = []
         self.t = 0 # simulation time
         self.dt = dt # simulation time step
-        self.visualizer = Visualizer(width, height, ppm=ppm)
-        
+        self.width, self.height, self.ppm = width, height, ppm
+        self.headless = headless # True: never open a window (fast batch runs)
+        self.visualizer = None # created on the first render()
+
     def add(self, entity: Entity):
         if entity.movable:
             self.dynamic_agents.append(entity)
         else:
             self.static_agents.append(entity)
-    def remove (self, entity: Entity):
+
+    def remove(self, entity: Entity):
         if entity.movable:
-                self.dynamic_agents.remove(entity)
+            self.dynamic_agents.remove(entity)
         else:
             self.static_agents.remove(entity)
-    def tick(self): #Create a worls sim tick, and for all agents have a sim tick, and have return variables of what simtick would do and than input those variables in the normal movements
+
+    def tick(self):
         for agent in self.dynamic_agents:
             agent.tick(self.dt)
         self.t += self.dt
-    
-    def sim_tick(self, agent): #Create a worls sim tick, and for all agents have a sim tick, and have return variables of what simtick would do and than input those variables in the normal movements
-        sim_traj = {}
-        for agent in self.dynamic_agents:
-            sim_traj[agent] = agent.sim_tick(self.dt)
-        return sim_traj
-    
-    def render(self):
-        self.visualizer.create_window(bg_color = 'gray')
+
+    def sim_tick(self, agent=None, steps: int = 400):
+        """Predicted shapes of every moving agent over the next `steps` ticks,
+        assuming each keeps its current controls: {agent: [shape, ...]}."""
+        return {a: a.sim_tick(self.dt, steps=steps) for a in self.dynamic_agents}
+
+    def render(self, flush: bool = True):
+        if self.headless:
+            return
+        if self.visualizer is None:
+            from visualizer import Visualizer # graphics.py opens Tk on import, so load it only when drawing
+            self.visualizer = Visualizer(self.width, self.height, ppm=self.ppm)
+        self.visualizer.create_window(bg_color='gray')
         self.visualizer.update_agents(self.agents)
-        
+        if flush:
+            self.visualizer.flush()
+
     @property
     def agents(self):
         return self.static_agents + self.dynamic_agents
-        
-    def collision_exists(self, agent = None): #Create a simcolliison_exists
-        if agent is None:
-            for i in range(len(self.dynamic_agents)):
-                for j in range(i+1, len(self.dynamic_agents)):
-                    if self.dynamic_agents[i].collidable and self.dynamic_agents[j].collidable:
-                        if self.dynamic_agents[i].collidesWith(self.dynamic_agents[j]):
-                            return True
-                for j in range(len(self.static_agents)):
-                    if self.dynamic_agents[i].collidable and self.static_agents[j].collidable:
-                        if self.dynamic_agents[i].collidesWith(self.static_agents[j]):
-                            return True
+
+    @staticmethod
+    def _touching(a, b) -> bool:
+        if not (a.collidable and b.collidable):
             return False
-            
-        if not agent.collidable: return False
-        
-        for i in range(len(self.agents)):
-            if self.agents[i] is not agent and self.agents[i].collidable and agent.collidesWith(self.agents[i]):
+        reach = a.bounding_radius() + b.bounding_radius() # skip the exact test when clearly apart
+        if (a.x - b.x) ** 2 + (a.y - b.y) ** 2 > reach * reach:
+            return False
+        return a.collidesWith(b)
+
+    def collision_exists(self, agent=None, ignore=()):
+        """With no agent: is anything colliding anywhere? With an agent: is
+        that agent colliding with anything (other than the agents in ignore)?"""
+        if agent is not None:
+            return any(self._touching(agent, o) for o in self.agents if o is not agent and o not in ignore)
+        dynamic = self.dynamic_agents
+        for i, a in enumerate(dynamic):
+            if any(self._touching(a, b) for b in dynamic[i + 1:] + self.static_agents):
                 return True
         return False
-    
+
     def close(self):
         self.reset()
         self.static_agents = []
-        if self.visualizer.window_created:
+        if self.visualizer is not None and self.visualizer.window_created:
             self.visualizer.close()
-        
+
     def reset(self):
         self.dynamic_agents = []
         self.t = 0
